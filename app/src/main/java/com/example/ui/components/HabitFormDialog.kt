@@ -46,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -200,7 +201,7 @@ fun HabitFormDialog(
                                 if (typeKey == "DURATION") unit = "mins"
                                 if (typeKey == "SIMPLE") unit = "times"
                             },
-                            label = { Text(label, fontSize = 12.sp) },
+                            label = { Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(10.dp),
                             colors = FilterChipDefaults.filterChipColors(
@@ -279,22 +280,43 @@ fun HabitFormDialog(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf("Morning", "Afternoon", "Evening", "Anytime").forEach { time ->
-                        FilterChip(
-                            selected = preferredTime == time,
-                            onClick = { preferredTime = time },
-                            label = { Text(time, fontSize = 11.sp) },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BloomSoftLavender,
-                                selectedLabelColor = BloomPrimary
-                            )
-                        )
+                    val timeRows = listOf(
+                        listOf("Morning", "Afternoon"),
+                        listOf("Evening", "Anytime")
+                    )
+                    timeRows.forEach { rowItems ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            rowItems.forEach { time ->
+                                FilterChip(
+                                    selected = preferredTime == time,
+                                    onClick = { preferredTime = time },
+                                    label = {
+                                        Text(
+                                            text = time,
+                                            fontSize = 12.sp,
+                                            fontWeight = if (preferredTime == time) FontWeight.Bold else FontWeight.Medium,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = BloomSoftLavender,
+                                        selectedLabelColor = BloomPrimary
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
 
