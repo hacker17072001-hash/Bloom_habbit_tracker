@@ -1,0 +1,6 @@
+{
+  "name": "Bloom — Habit Tracker",
+  "description": "A premium, fully functional personal habit tracker app with local storage, streaks, analytics, calendars, and focus timer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,114 @@
+name: Build & Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Android Gradle Plugin 9.1.1 and compileSdk 36 strictly require JDK 21
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # Cache Gradle dependencies and wrappers
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Make Gradle Wrapper Executable
+        run: |
+          chmod +x ./gradlew
+
+      - name: Run Unit Tests
+        run: |
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+          # Prepare distribution directory with clean APK naming
+          mkdir -p dist
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk dist/bloom-habit-tracker-debug.apk
+          fi
+
+      - name: Build Release APK (Conditional)
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ -n "$RELEASE_KEYSTORE_BASE64" ] && [ -n "$RELEASE_STORE_PASSWORD" ] && [ -n "$RELEASE_KEY_ALIAS" ] && [ -n "$RELEASE_KEY_PASSWORD" ]; then
+            echo "Release signing secrets detected. Building signed release APK..."
+            RELEASE_KEYSTORE_FILE="$RUNNER_TEMP/release.keystore"
+            echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RELEASE_KEYSTORE_FILE"
+
+            RELEASE_KEYSTORE_PATH="$RELEASE_KEYSTORE_FILE" \
+            RELEASE_STORE_PASSWORD="$RELEASE_STORE_PASSWORD" \
+            RELEASE_KEY_ALIAS="$RELEASE_KEY_ALIAS" \
+            RELEASE_KEY_PASSWORD="$RELEASE_KEY_PASSWORD" \
+            ./gradlew assembleRelease --no-daemon --stacktrace
+
+            if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+              cp app/build/outputs/apk/release/app-release.apk dist/bloom-habit-tracker-release.apk
+            elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+              cp app/build/outputs/apk/release/app-release-unsigned.apk dist/bloom-habit-tracker-release.apk
+            fi
+
+            # Immediately delete temporary keystore file
+            rm -f "$RELEASE_KEYSTORE_FILE"
+            echo "Temporary keystore securely removed."
+          else
+            echo "Release signing secrets not provided or incomplete. Skipping release build."
+          fi
+
+      # -------------------------------------------------------------------------
+      # GUARANTEE: Preserve Actions artifact even if subsequent release fails
+      # -------------------------------------------------------------------------
+      - name: Upload APKs as Actions Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bloom-apk-artifacts
+          path: dist/*.apk
+          if-no-files-found: ignore
+          retention-days: 30
+
+      # -------------------------------------------------------------------------
+      # GUARANTEE: Attach directly downloadable APK to GitHub Release
+      # -------------------------------------------------------------------------
+      - name: Create GitHub Release with downloadable APK
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        with:
+          name: Bloom Release ${{ github.ref_name || inputs.tag_name }}
+          tag_name: ${{ github.ref_name || inputs.tag_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: dist/*.apk
