@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,16 +21,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -47,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -56,6 +56,76 @@ import com.example.data.entity.HabitEntity
 import com.example.ui.theme.BloomPrimary
 import com.example.ui.theme.BloomSoftLavender
 import com.example.util.DateUtils
+
+/**
+ * Modern, tactile selectable button for option groups in the habit form.
+ * Ensures buttons have clear backgrounds, distinct borders, responsive ripple,
+ * and high contrast in both selected and unselected states.
+ */
+@Composable
+fun BloomSelectableButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    showCheckmark: Boolean = true,
+    height: Dp = 40.dp,
+    testTag: String? = null
+) {
+    val containerColor = if (selected) {
+        BloomSoftLavender
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+    }
+    val contentColor = if (selected) {
+        BloomPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val borderColor = if (selected) {
+        BloomPrimary
+    } else {
+        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)
+    }
+    val borderWidth = if (selected) 1.5.dp else 1.dp
+
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .height(height)
+            .then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+        border = BorderStroke(borderWidth, borderColor),
+        tonalElevation = if (selected) 2.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (selected && showCheckmark) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = BloomPrimary,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                color = contentColor,
+                fontSize = 13.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                maxLines = 1,
+                softWrap = false,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -151,7 +221,7 @@ fun HabitFormDialog(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Category Selection
                 Text(
@@ -160,26 +230,24 @@ fun HabitFormDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     categories.forEach { cat ->
-                        FilterChip(
+                        BloomSelectableButton(
+                            text = cat.name,
                             selected = selectedCategory == cat.name,
                             onClick = { selectedCategory = cat.name },
-                            label = { Text(cat.name, fontSize = 12.sp) },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BloomSoftLavender,
-                                selectedLabelColor = BloomPrimary
-                            )
+                            showCheckmark = true,
+                            height = 38.dp,
+                            testTag = "category_button_${cat.name.lowercase().replace(" ", "_")}"
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Habit Type Selection
                 Text(
@@ -188,33 +256,35 @@ fun HabitFormDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf("SIMPLE" to "Simple Check", "QUANTITY" to "Quantity", "DURATION" to "Duration").forEach { (typeKey, label) ->
-                        FilterChip(
+                    listOf(
+                        "SIMPLE" to "Simple Check",
+                        "QUANTITY" to "Quantity",
+                        "DURATION" to "Duration"
+                    ).forEach { (typeKey, label) ->
+                        BloomSelectableButton(
+                            text = label,
                             selected = selectedType == typeKey,
                             onClick = {
                                 selectedType = typeKey
                                 if (typeKey == "DURATION") unit = "mins"
                                 if (typeKey == "SIMPLE") unit = "times"
                             },
-                            label = { Text(label, fontSize = 12.sp, maxLines = 1, softWrap = false) },
+                            showCheckmark = false,
+                            height = 44.dp,
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BloomSoftLavender,
-                                selectedLabelColor = BloomPrimary
-                            )
+                            testTag = "type_button_$typeKey"
                         )
                     }
                 }
 
                 // Target & Unit inputs if Quantity or Duration
                 if (selectedType != "SIMPLE") {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -238,7 +308,7 @@ fun HabitFormDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Schedule selection
                 Text(
@@ -247,7 +317,7 @@ fun HabitFormDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -257,29 +327,27 @@ fun HabitFormDialog(
                         "WEEKDAYS" to "Weekdays (Mon-Fri)",
                         "WEEKENDS" to "Weekends (Sat-Sun)"
                     ).forEach { (schedKey, label) ->
-                        FilterChip(
+                        BloomSelectableButton(
+                            text = label,
                             selected = scheduleType == schedKey,
                             onClick = { scheduleType = schedKey },
-                            label = { Text(label, fontSize = 12.sp) },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = BloomSoftLavender,
-                                selectedLabelColor = BloomPrimary
-                            )
+                            showCheckmark = true,
+                            height = 38.dp,
+                            testTag = "schedule_button_$schedKey"
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // Preferred Time of Day
+                // Preferred Time of Day (2x2 balanced button grid)
                 Text(
                     text = "Time of Day",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -294,33 +362,21 @@ fun HabitFormDialog(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             rowItems.forEach { time ->
-                                FilterChip(
+                                BloomSelectableButton(
+                                    text = time,
                                     selected = preferredTime == time,
                                     onClick = { preferredTime = time },
-                                    label = {
-                                        Text(
-                                            text = time,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (preferredTime == time) FontWeight.Bold else FontWeight.Medium,
-                                            maxLines = 1,
-                                            softWrap = false,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                    },
+                                    showCheckmark = true,
+                                    height = 44.dp,
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = BloomSoftLavender,
-                                        selectedLabelColor = BloomPrimary
-                                    )
+                                    testTag = "time_button_${time.lowercase()}"
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Color Selection
                 Text(
@@ -329,30 +385,41 @@ fun HabitFormDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     BloomIconHelper.availableColors.forEach { hex ->
                         val col = BloomIconHelper.parseColor(hex)
                         val isSelected = selectedColorHex.equals(hex, ignoreCase = true)
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
                                 .background(col)
                                 .border(
-                                    width = if (isSelected) 3.dp else 0.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                    width = if (isSelected) 3.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
                                     shape = CircleShape
                                 )
-                                .clickable { selectedColorHex = hex }
-                        )
+                                .clickable { selectedColorHex = hex },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Icon Selection
                 Text(
@@ -361,7 +428,7 @@ fun HabitFormDialog(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -369,64 +436,85 @@ fun HabitFormDialog(
                     BloomIconHelper.availableIcons.forEach { (iconKey, label) ->
                         val isSelected = selectedIconName == iconKey
                         val icon = BloomIconHelper.getIcon(iconKey)
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) BloomSoftLavender else MaterialTheme.colorScheme.surfaceVariant)
-                                .border(
-                                    width = if (isSelected) 2.dp else 0.dp,
-                                    color = if (isSelected) BloomPrimary else Color.Transparent,
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                .clickable { selectedIconName = iconKey },
-                            contentAlignment = Alignment.Center
+                        Surface(
+                            onClick = { selectedIconName = iconKey },
+                            modifier = Modifier.size(44.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) BloomSoftLavender else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) BloomPrimary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f)
+                            ),
+                            tonalElevation = if (isSelected) 2.dp else 0.dp
                         ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = label,
-                                tint = if (isSelected) BloomPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = label,
+                                    tint = if (isSelected) BloomPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
-                // Save Button
-                Button(
-                    onClick = {
-                        if (name.isNotBlank()) {
-                            val habit = (initialHabit ?: HabitEntity(name = name.trim(), startDate = DateUtils.today())).copy(
-                                name = name.trim(),
-                                description = description.trim(),
-                                categoryId = selectedCategory,
-                                type = selectedType,
-                                targetValue = targetValue,
-                                unit = unit,
-                                scheduleType = scheduleType,
-                                colorHex = selectedColorHex,
-                                iconName = selectedIconName,
-                                preferredTime = preferredTime,
-                                updatedAt = System.currentTimeMillis()
-                            )
-                            onSave(habit)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("save_habit_button"),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BloomPrimary),
-                    enabled = name.isNotBlank()
+                // Dialog Action Buttons: Cancel and Save
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = if (initialHabit == null) "Create Habit" else "Save Changes",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            if (name.isNotBlank()) {
+                                val habit = (initialHabit ?: HabitEntity(name = name.trim(), startDate = DateUtils.today())).copy(
+                                    name = name.trim(),
+                                    description = description.trim(),
+                                    categoryId = selectedCategory,
+                                    type = selectedType,
+                                    targetValue = targetValue,
+                                    unit = unit,
+                                    scheduleType = scheduleType,
+                                    colorHex = selectedColorHex,
+                                    iconName = selectedIconName,
+                                    preferredTime = preferredTime,
+                                    updatedAt = System.currentTimeMillis()
+                                )
+                                onSave(habit)
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1.4f)
+                            .height(52.dp)
+                            .testTag("save_habit_button"),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BloomPrimary),
+                        enabled = name.isNotBlank()
+                    ) {
+                        Text(
+                            text = if (initialHabit == null) "Create Habit" else "Save Changes",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
                 }
             }
         }

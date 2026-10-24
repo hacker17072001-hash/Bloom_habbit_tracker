@@ -192,26 +192,48 @@ fun HabitsScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
+                val isSelected = selectedCategoryFilter == "All"
                 FilterChip(
-                    selected = selectedCategoryFilter == "All",
+                    selected = isSelected,
                     onClick = { selectedCategoryFilter = "All" },
-                    label = { Text("All") },
-                    shape = RoundedCornerShape(10.dp),
+                    label = { Text("All", fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                    shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = BloomSoftLavender,
-                        selectedLabelColor = BloomPrimary
+                        selectedLabelColor = BloomPrimary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f),
+                        selectedBorderColor = BloomPrimary,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.5.dp
                     )
                 )
             }
             items(categories) { cat ->
+                val isSelected = selectedCategoryFilter == cat.name
                 FilterChip(
-                    selected = selectedCategoryFilter == cat.name,
+                    selected = isSelected,
                     onClick = { selectedCategoryFilter = cat.name },
-                    label = { Text(cat.name) },
-                    shape = RoundedCornerShape(10.dp),
+                    label = { Text(cat.name, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium) },
+                    shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = BloomSoftLavender,
-                        selectedLabelColor = BloomPrimary
+                        selectedLabelColor = BloomPrimary,
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        labelColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
+                        borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.85f),
+                        selectedBorderColor = BloomPrimary,
+                        borderWidth = 1.dp,
+                        selectedBorderWidth = 1.5.dp
                     )
                 )
             }
